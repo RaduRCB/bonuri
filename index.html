@@ -72,6 +72,11 @@
   .bar > i{display:block;height:100%;border-radius:5px}
   .catrow{padding:9px 0;border-top:1px solid var(--line)}
   .catrow:first-child{border-top:0}
+  .click{cursor:pointer}
+  .click:active{opacity:.6}
+  .chev{color:var(--muted);margin-left:4px}
+  .drow{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line);align-items:center}
+  .drow select{grid-column:1/3;font-size:14px;padding:6px 8px}
   .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
   .kpi .v{font-size:20px;font-weight:800;letter-spacing:-.02em}
@@ -182,7 +187,7 @@
     </div>
     <div id="report"></div>
   </section>
-  <div class="ver">Bonurile Noastre · v2</div>
+  <div class="ver">Bonurile Noastre · v3</div>
 </div>
 
 <nav class="tabs">
@@ -429,8 +434,8 @@ function openEditor(draft, opts){
         <div><label class="f">Total (${esc(d.currency)})</label><input id="e-total" inputmode="decimal" value="${d.total}"></div>
       </div>
       <div class="row" style="margin-top:14px">
-        <label class="f" style="margin:0">Toate produsele la:</label>
-        <select id="e-all" class="grow"><option value="">— alege —</option>${catOptions('')}</select>
+        <label class="f" style="margin:0">${d.items.length ? 'Toate produsele la:' : 'Categoria bonului:'}</label>
+        <select id="e-all" class="grow"><option value="">— alege —</option>${catOptions(d._wholeCat||'')}</select>
       </div>
       <h3>Produse (${d.items.length})</h3>
       <div>${d.items.map((it,i)=>`
@@ -455,7 +460,7 @@ function openEditor(draft, opts){
     $('#e-date').oninput = e => { d.date = e.target.value; checks(); };
     $('#e-time').oninput = e => { d.time = e.target.value; checks(); };
     $('#e-total').oninput = e => { d.total = r2(num(e.target.value)); checks(); };
-    $('#e-all').onchange = e => { if (!e.target.value) return; d.items.forEach(i=>i.category=e.target.value); render(); };
+    $('#e-all').onchange = e => { d._wholeCat = e.target.value; if (!e.target.value) return; d.items.forEach(i=>i.category=e.target.value); render(); };
     ed.querySelectorAll('[data-f]').forEach(el=> el.addEventListener(el.tagName==='SELECT'?'change':'input', ()=>{
       const it = d.items[+el.dataset.i], f = el.dataset.f;
       it[f] = f==='price' ? r2(num(el.value)) : el.value;
@@ -494,9 +499,13 @@ function openEditor(draft, opts){
           } catch {}
         }
       }
-      const items = d.items.filter(i=> (i.name_ro||i.name||'').trim() || num(i.price)).map(i=>({
+      let items = d.items.filter(i=> (i.name_ro||i.name||'').trim() || num(i.price)).map(i=>({
         name: String(i.name||i.name_ro||''), name_ro: String(i.name_ro||i.name||''), qty: num(i.qty)||1, price: r2(num(i.price)), category: validCat(i.category)
       }));
+      if (!items.length && num(d.total)) {
+        if (!d._wholeCat) { btn.disabled = false; btn.textContent = '💾 Salvează'; $('#e-msg').innerHTML = '<div class="note err">Bonul nu are produse — alege mai sus „Categoria bonului”, ca să nu ajungă la „Altele”.</div>'; return; }
+        items = [{ name:'', name_ro: d.store.trim() || 'Bon', qty:1, price: r2(num(d.total)), category: d._wholeCat }];
+      }
       const row = {
         store: d.store.trim(), city: (d.city||'').trim(), date: d.date, time: d.time||'', currency: d.currency||'EUR',
         total: r2(num(d.total)), language: d.language||'', payment: d.payment||'', notes: d.notes||'', items, photo_paths,
@@ -637,9 +646,10 @@ function renderReport(){
     </div>
     <div class="card">
       <h2>Pe categorii</h2>
-      ${catList.map(([k,v])=>{ const pv = P.cats[k]||0; const d = pv? (v-pv)/pv*100 : null; return `
-        <div class="catrow">
-          <div class="row between"><span>${CAT[k].e} ${CAT[k].n}</span><span><b>${fmt(v)}</b> <span class="sub">· ${(v/S.total*100).toFixed(0)}%${d==null?'':` · <span class="${d>0?'up':'down'}">${d>0?'▲':'▼'}${Math.abs(d).toFixed(0)}%</span>`}</span></span></div>
+      <div class="sub" style="margin:-4px 0 6px">Apasă pe o categorie ca să vezi produsele.</div>
+      ${catList.map(([k,v])=>{ const pv = P.cats[k]||0; const d = r2(v - pv); return `
+        <div class="catrow click" data-cat="${k}">
+          <div class="row between"><span>${CAT[k].e} ${CAT[k].n}<span class="chev">›</span></span><span><b>${fmt(v)}</b> <span class="sub">· ${(v/S.total*100).toFixed(0)}%${P.rs.length && Math.abs(d)>=0.01 ? ` · <span class="${d>0?'up':'down'}">${d>0?'▲ +':'▼ −'}${fmt(Math.abs(d)).replace(/\s?EUR|€/,'').trim()}€</span>` : ''}</span></span></div>
           <div class="bar"><i style="width:${Math.max(0,v)/maxCat*100}%;background:${CAT[k].c}"></i></div>
         </div>`; }).join('')}
     </div>
@@ -648,7 +658,7 @@ function renderReport(){
       <div class="days">${Array.from({length:dim},(_,i)=>`<i title="${i+1}: ${fmt(S.days[i+1]||0)}" style="height:${(S.days[i+1]||0)/maxDay*100}%"></i>`).join('')}</div>
       <div class="row between sub" style="margin-top:4px"><span>1</span><span>${Math.ceil(dim/2)}</span><span>${dim}</span></div>
     </div>
-    <div class="card"><h2>Magazine</h2><table class="t">${stores.map(([s,v])=>`<tr><td>${esc(s)}</td><td class="r">${fmt(v)}</td></tr>`).join('')}</table></div>
+    <div class="card"><h2>Magazine</h2><table class="t">${stores.map(([s,v])=>`<tr class="click" data-store="${esc(s)}"><td>${esc(s)}<span class="chev">›</span></td><td class="r">${fmt(v)}</td></tr>`).join('')}</table></div>
     <div class="card"><h2>Cine a adăugat</h2><table class="t">${people.map(([p,v])=>`<tr><td>${esc(personName(p))}</td><td class="r">${fmt(v)}</td></tr>`).join('')}</table></div>
     <div class="card"><h2>Cele mai scumpe produse</h2><table class="t">${topItems.map(i=>`<tr><td>${CAT[validCat(i.category)].e} ${esc(i.name_ro||i.name)}<div class="sub" style="font-size:11px">${esc(i.store)}</div></td><td class="r">${fmt(num(i.price))}</td></tr>`).join('')}</table></div>
     ${S.other.length ? `<div class="note warn">${S.other.length} bon(uri) în altă monedă nu sunt incluse în totaluri: ${S.other.map(r=>esc(r.store)+' '+fmt(num(r.total),r.currency)).join(', ')}.</div>` : ''}
@@ -677,6 +687,8 @@ function renderReport(){
     catch (e) { out.innerHTML = aiErr(e); }
     finally { btn.disabled = false; btn.textContent = 'Generează din nou'; }
   };
+  el.querySelectorAll('[data-cat]').forEach(x => x.onclick = () => openCatDetail(m, x.dataset.cat));
+  el.querySelectorAll('[data-store]').forEach(x => x.onclick = () => openStoreDetail(m, x.dataset.store));
   $('#csvBtn').onclick = () => {
     const q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
     const rows = [['Data','Ora','Magazin','Oras','Produs (original)','Produs (RO)','Categorie','Pret','Moneda','Total bon','Adaugat de']];
@@ -691,6 +703,65 @@ function renderReport(){
   };
 }
 $('#repMonth').onchange = renderReport;
+
+/* ================= DRILL-DOWN ================= */
+function sheet(html){ const root = $('#modalRoot'); root.innerHTML = `<div class="modal"><div class="sheet">${html}</div></div>`; root.querySelector('[data-close]')?.addEventListener('click', ()=> root.innerHTML=''); return root; }
+
+function catLines(m, k){
+  const lines = [];
+  receipts.filter(r=>r.month===m && (r.currency||'EUR')==='EUR').forEach(r=>{
+    r.items.forEach((it,idx)=>{ if (validCat(it.category)===k) lines.push({ r, idx, name: it.name_ro||it.name||'Produs', orig: it.name && it.name!==it.name_ro ? it.name : '', price: num(it.price) }); });
+    if (k==='altele'){
+      if (!r.items.length) lines.push({ r, idx:-1, name:'Bon fără produse', orig:'Apasă ca să-i alegi categoria', price: num(r.total) });
+      else { const diff = r2(num(r.total) - r.items.reduce((s,i)=>s+num(i.price),0)); if (Math.abs(diff)>0.009) lines.push({ r, idx:-1, name:'Diferență față de totalul bonului', orig:'Prețurile produselor nu dau totalul — apasă ca să corectezi', price: diff }); }
+    }
+  });
+  return lines.sort((a,b)=>b.price-a.price);
+}
+
+function openCatDetail(m, k){
+  const lines = catLines(m, k);
+  const total = r2(lines.reduce((s,l)=>s+l.price,0));
+  // same product summary (bought more than once)
+  const agg = {}; lines.filter(l=>l.idx>=0).forEach(l=>{ const key=l.name.toLowerCase(); (agg[key] ??= {name:l.name,n:0,s:0}); agg[key].n++; agg[key].s=r2(agg[key].s+l.price); });
+  const repeat = Object.values(agg).filter(a=>a.n>1).sort((a,b)=>b.s-a.s).slice(0,5);
+  const root = sheet(`
+    <div class="row between"><div><h2 style="margin:0">${CAT[k].e} ${CAT[k].n}</h2><div class="sub">${monthLabel(m)} · ${lines.filter(l=>l.idx>=0).length} produse</div></div><button class="btn ghost small" data-close>✕</button></div>
+    <div class="kpi" style="margin:12px 0"><div class="l">Total categorie</div><div class="v">${fmt(total)}</div></div>
+    ${repeat.length ? `<h3>Cumpărate de mai multe ori</h3><table class="t">${repeat.map(a=>`<tr><td>${esc(a.name)} <span class="sub">× ${a.n}</span></td><td class="r">${fmt(a.s)}</td></tr>`).join('')}</table>` : ''}
+    <h3>Toate produsele</h3>
+    <div class="sub" style="margin-bottom:4px">Ai pus ceva greșit? Schimbă categoria din meniul de sub produs — se salvează imediat și aplicația ține minte.</div>
+    <div id="dl">${lines.map((l,i)=>`
+      <div class="drow">
+        <div class="click" data-open="${i}"><b>${esc(l.name)}</b><div class="sub" style="font-size:12px">${esc(l.r.store)} · ${fmtDate(l.r.date)}${l.orig?' · '+esc(l.orig):''}</div></div>
+        <div style="font-weight:800;white-space:nowrap">${fmt(l.price)}</div>
+        ${l.idx>=0 ? `<select data-move="${i}">${catOptions(k)}</select>` : ''}
+      </div>`).join('') || '<div class="empty">Nimic aici.</div>'}</div>
+    <div id="dmsg"></div>`);
+  root.querySelectorAll('[data-open]').forEach(x=> x.onclick = ()=>{ const l = lines[+x.dataset.open]; openReceipt(l.r); });
+  root.querySelectorAll('[data-move]').forEach(sel=> sel.onchange = async ()=>{
+    const l = lines[+sel.dataset.move], nk = sel.value; if (nk===k) return;
+    sel.disabled = true;
+    const items = l.r.items.map(i=>({...i})); const it = items[l.idx]; it.category = nk;
+    const { error } = await sb.from('receipts').update({ items, updated_at: new Date().toISOString() }).eq('id', l.r.id);
+    if (error){ sel.disabled=false; sel.value=k; $('#dmsg').innerHTML = `<div class="note err">Nu am putut salva: ${esc(error.message)}</div>`; return; }
+    const key = norm(it.name); if (key && key.length>2){ await sb.from('category_rules').upsert({ key, category: nk, updated_at: new Date().toISOString() }); rules[key]=nk; }
+    await loadReceipts();
+    openCatDetail(m, k);
+  });
+}
+
+function openStoreDetail(m, store){
+  const rs = receipts.filter(r=>r.month===m && (r.store||'?').trim()===store && (r.currency||'EUR')==='EUR');
+  const total = r2(rs.reduce((s,r)=>s+num(r.total),0));
+  const cats = {}; rs.forEach(r=> Object.entries(itemsByCat(r)).forEach(([k,v])=> cats[k]=r2((cats[k]||0)+v)));
+  const root = sheet(`
+    <div class="row between"><div><h2 style="margin:0">${esc(store)}</h2><div class="sub">${monthLabel(m)} · ${rs.length} bon(uri)</div></div><button class="btn ghost small" data-close>✕</button></div>
+    <div class="kpi" style="margin:12px 0"><div class="l">Total la acest magazin</div><div class="v">${fmt(total)}</div></div>
+    ${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="chip" style="background:${CAT[k].c}22;color:${CAT[k].c};margin:0 4px 4px 0">${CAT[k].e} ${CAT[k].n}: ${fmt(v)}</span>`).join('')}
+    <h3>Bonuri</h3><div id="sl">${rs.map(receiptCard).join('')}</div>`);
+  bindCards(root.querySelector('#sl'));
+}
 </script>
 </body>
 </html>
