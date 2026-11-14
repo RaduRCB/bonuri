@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bonuri">
+<meta name="theme-color" content="#1f6f5c">
+<title>Bonurile Noastre</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%231f6f5c'/%3E%3Ctext x='90' y='120' font-size='100' text-anchor='middle'%3E🧾%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🧾%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#f6f4ef; --card:#ffffff; --ink:#1d1d1b; --muted:#77736a; --line:#e7e2d8;
+    --accent:#1f6f5c; --accent2:#e8f2ee; --warn:#b4541a; --warnbg:#fbeee4; --err:#b42318;
+    --radius:16px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#141412; --card:#1e1e1b; --ink:#f1efe9; --muted:#a39f95; --line:#2f2e2a;
+      --accent:#4fb497; --accent2:#1d2e28; --warn:#f0a26b; --warnbg:#33251b; --err:#f97066; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.45}
+  .wrap{max-width:720px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
+  header{display:flex;align-items:center;justify-content:space-between;margin:4px 0 14px}
+  h1{font-size:22px;margin:0;font-weight:800;letter-spacing:-.02em}
+  h2{font-size:17px;margin:0 0 10px;font-weight:700}
+  h3{font-size:14px;margin:18px 0 8px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .sub{color:var(--muted);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+  .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;z-index:20;padding-bottom:env(safe-area-inset-bottom)}
+  .tabs button{flex:1;max-width:240px;background:none;border:0;padding:10px 4px 12px;font:inherit;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+  .tabs button .ic{font-size:20px}
+  .tabs button.on{color:var(--accent);font-weight:700}
+  button.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 16px;background:var(--accent);color:#fff;cursor:pointer}
+  button.btn.sec{background:var(--accent2);color:var(--accent)}
+  button.btn.ghost{background:none;color:var(--muted);border:1px solid var(--line)}
+  button.btn.danger{background:none;color:var(--err);border:1px solid var(--line)}
+  button.btn.small{padding:6px 10px;font-size:13px}
+  button.btn:disabled{opacity:.5;cursor:default}
+  button.btn.full{width:100%}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .row.between{justify-content:space-between}
+  .grow{flex:1}
+  .drop{display:block;border:2px dashed var(--line);border-radius:var(--radius);padding:26px 16px;text-align:center;cursor:pointer;background:var(--card)}
+  .drop.over{border-color:var(--accent);background:var(--accent2)}
+  .drop .big{font-size:40px}
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .thumb{position:relative;width:78px;height:104px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#0001}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:#000a;color:#fff;font-size:13px;cursor:pointer;line-height:22px;padding:0}
+  label.f{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px}
+  input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;width:100%}
+  input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .item{border-top:1px solid var(--line);padding:10px 0;display:grid;grid-template-columns:1fr 92px;gap:6px 8px}
+  .item .orig{grid-column:1/3;font-size:12px;color:var(--muted)}
+  .note{border-radius:12px;padding:10px 12px;font-size:13px;margin:10px 0}
+  .note.warn{background:var(--warnbg);color:var(--warn)}
+  .note.ok{background:var(--accent2);color:var(--accent)}
+  .note.err{background:var(--warnbg);color:var(--err)}
+  .rc{display:flex;gap:12px;align-items:center;cursor:pointer}
+  .rc .ic{width:42px;height:42px;border-radius:12px;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+  .rc .amt{font-weight:800;white-space:nowrap}
+  .mix{display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:6px;background:var(--line)}
+  .bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:5px}
+  .bar > i{display:block;height:100%;border-radius:5px}
+  .catrow{padding:9px 0;border-top:1px solid var(--line)}
+  .catrow:first-child{border-top:0}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
+  .kpi .v{font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .kpi .l{font-size:12px;color:var(--muted)}
+  .up{color:var(--err)} .down{color:var(--accent)}
+  .days{display:flex;align-items:flex-end;gap:2px;height:80px;margin-top:8px}
+  .days i{flex:1;background:var(--accent);border-radius:2px 2px 0 0;min-height:1px;opacity:.85}
+  .spinner{width:18px;height:18px;border:3px solid var(--accent2);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;display:inline-block;vertical-align:middle}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .modal{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-end;justify-content:center;z-index:50}
+  .modal .sheet{background:var(--card);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+  .photo{width:100%;border-radius:12px;border:1px solid var(--line);margin-top:8px}
+  .chip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--accent2);color:var(--accent);font-weight:700}
+  .hidden{display:none !important}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px}
+  table.t{width:100%;border-collapse:collapse;font-size:14px}
+  table.t td{padding:7px 0;border-top:1px solid var(--line)}
+  table.t td.r{text-align:right;font-weight:700}
+  .ai-out{white-space:pre-wrap;font-size:14px}
+  .login{max-width:400px;margin:8vh auto 0}
+  .ver{text-align:center;color:var(--muted);font-size:11px;margin-top:20px}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="v-login" class="wrap hidden">
+  <div class="login">
+    <div style="text-align:center;font-size:56px">🧾</div>
+    <h1 style="text-align:center;margin-bottom:6px">Bonurile Noastre</h1>
+    <div class="sub" style="text-align:center;margin-bottom:20px">Intră cu emailul și parola ta.</div>
+    <div class="card">
+      <label class="f">Email</label>
+      <input id="l-email" type="email" autocomplete="email" inputmode="email">
+      <label class="f" style="margin-top:10px">Parolă</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn full" id="l-in" style="margin-top:14px">Intră</button>
+      <button class="btn ghost full" id="l-up" style="margin-top:8px">Creează cont nou</button>
+      <div id="l-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== NOT MEMBER ===== -->
+<div id="v-nomember" class="wrap hidden">
+  <div class="login card">
+    <h2>Contul nu e activat încă</h2>
+    <div class="sub">Ești logat(ă) ca <b id="nm-email"></b>, dar acest email nu e pe lista celor care au acces la bonuri. Spune-i lui Radu să-l adauge, apoi apasă „Verifică din nou”.</div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn grow" id="nm-retry">Verifică din nou</button>
+      <button class="btn ghost" id="nm-out">Ieși</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="v-app" class="hidden">
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🧾 Bonurile Noastre</h1>
+      <div class="sub" id="who"></div>
+    </div>
+    <button class="btn ghost small" id="logout">Ieși</button>
+  </header>
+
+  <div id="banner"></div>
+
+  <section id="v-add">
+    <div class="card">
+      <h2>Adaugă un bon</h2>
+      <div class="sub" style="margin-bottom:12px">Fă poză bonului (sau alege din galerie). Dacă bonul e lung, pune 2–3 poze: sus, mijloc, jos.</div>
+      <label class="drop" id="drop">
+        <div class="big">📷</div>
+        <div style="font-weight:700">Fă poză / alege poze</div>
+        <div class="sub">Bonul întins, drept, cu lumină bună</div>
+        <input type="file" id="file" accept="image/*" multiple class="hidden">
+      </label>
+      <div class="thumbs" id="thumbs"></div>
+      <div id="scanStatus"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn grow" id="scanBtn" disabled>✨ Citește bonul</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost full" id="manualBtn">✍️ Adaugă manual (fără poză)</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ultimele bonuri</h2>
+      <div id="recent"></div>
+    </div>
+  </section>
+
+  <section id="v-list" class="hidden">
+    <div class="card">
+      <input id="search" placeholder="🔎 Caută magazin sau produs…">
+      <div class="row" style="margin-top:8px">
+        <select id="listMonth" class="grow"></select>
+        <select id="listCat" class="grow"></select>
+      </div>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <section id="v-report" class="hidden">
+    <div class="card">
+      <select id="repMonth"></select>
+    </div>
+    <div id="report"></div>
+  </section>
+  <div class="ver">Bonurile Noastre · v2</div>
+</div>
+
+<nav class="tabs">
+  <button data-v="add" class="on"><span class="ic">➕</span>Adaugă</button>
+  <button data-v="list"><span class="ic">🧾</span>Bonuri</button>
+  <button data-v="report"><span class="ic">📊</span>Raport</button>
+</nav>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ================= SUPABASE ================= */
+const SUPABASE_URL = 'https://kbqbabopqbmntlbrpbtt.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Kh4-p0jeqhyzSPp7JNs9Vw_mSTUcmI8';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+
+/* ================= CONFIG ================= */
+const CATS = [
+  {k:'mancare',    n:'Mâncare',                 e:'🥦', c:'#2f9e44'},
+  {k:'bauturi',    n:'Băuturi',                 e:'🥤', c:'#1c7ed6'},
+  {k:'casa',       n:'Casă & curățenie',        e:'🧽', c:'#7950f2'},
+  {k:'igiena',     n:'Igienă & cosmetice',      e:'🧴', c:'#e64980'},
+  {k:'sanatate',   n:'Farmacie & sănătate',     e:'💊', c:'#d6336c'},
+  {k:'haine',      n:'Haine & încălțăminte',    e:'👕', c:'#f08c00'},
+  {k:'electronice',n:'Electronice',             e:'🔌', c:'#1098ad'},
+  {k:'transport',  n:'Transport & combustibil', e:'⛽', c:'#5c7cfa'},
+  {k:'restaurant', n:'Restaurant & livrare',    e:'🍽️', c:'#e8590c'},
+  {k:'altele',     n:'Altele',                  e:'📦', c:'#868e96'},
+];
+const CAT = Object.fromEntries(CATS.map(c=>[c.k,c]));
+const MONTHS_RO = ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
+
+/* ================= HELPERS ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { if (typeof v === 'number') return isFinite(v)?v:0; const n = parseFloat(String(v??'').replace(/\s/g,'').replace(',','.')); return isFinite(n)?n:0; };
+const r2 = n => Math.round(n*100)/100;
+const fmt = (n, cur='EUR') => { try { return new Intl.NumberFormat('ro-RO',{style:'currency',currency:cur||'EUR'}).format(n); } catch { return Number(n).toFixed(2)+' '+(cur||''); } };
+const norm = s => String(s||'').toLowerCase().replace(/[0-9.,%€*x]+/g,' ').replace(/\s+/g,' ').trim();
+const monthLabel = m => { if(!m) return 'Fără dată'; const [y,mo]=m.split('-'); return MONTHS_RO[+mo-1]+' '+y; };
+const todayISO = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const curMonth = () => todayISO().slice(0,7);
+const prevMonth = m => { let [y,mo]=m.split('-').map(Number); mo--; if(mo<1){mo=12;y--;} return y+'-'+String(mo).padStart(2,'0'); };
+const fmtDate = d => { if(!d) return 'fără dată'; const [y,m,dd]=d.split('-'); return `${+dd} ${MONTHS_RO[+m-1].slice(0,3)} ${y}`; };
+const validCat = k => CAT[k] ? k : 'altele';
+function banner(html, kind='warn'){ $('#banner').innerHTML = html ? `<div class="note ${kind}">${html}</div>` : ''; }
+function show(view){ ['login','nomember','app'].forEach(v=> $('#v-'+v).classList.toggle('hidden', v!==view)); }
+
+/* ================= STATE ================= */
+let session = null;
+let receipts = [];
+let rules = {};
+let members = {};   // email(lower) -> name
+let photos = [];
+let booted = false;
+
+/* ================= AUTH ================= */
+const lmsg = (h,k='err') => $('#l-msg').innerHTML = h ? `<div class="note ${k}">${h}</div>` : '';
+$('#l-in').onclick = async () => {
+  const email = $('#l-email').value.trim(), password = $('#l-pass').value;
+  if (!email || !password) return lmsg('Completează emailul și parola.');
+  $('#l-in').disabled = true; lmsg('');
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  $('#l-in').disabled = false;
+  if (error) lmsg(/confirm/i.test(error.message) ? 'Emailul nu e confirmat încă. Deschide emailul de la Supabase și apasă pe link, apoi încearcă din nou.' : 'Email sau parolă greșită.');
+};
+$('#l-up').onclick = async () => {
+  const email = $('#l-email').value.trim(), password = $('#l-pass').value;
+  if (!email || password.length < 6) return lmsg('Pune emailul și o parolă de minim 6 caractere, apoi apasă din nou „Creează cont nou”.');
+  $('#l-up').disabled = true; lmsg('');
+  const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+  $('#l-up').disabled = false;
+  if (error) return lmsg('Nu am putut crea contul: ' + esc(error.message));
+  if (!data.session) lmsg('✓ Cont creat. Ți-am trimis un email de confirmare — apasă pe linkul din el, apoi revino aici și apasă „Intră”.', 'ok');
+};
+$('#l-pass').addEventListener('keydown', e=>{ if (e.key==='Enter') $('#l-in').click(); });
+$('#logout').onclick = $('#nm-out').onclick = async () => { await sb.auth.signOut(); };
+$('#nm-retry').onclick = () => boot();
+
+sb.auth.onAuthStateChange((ev, s) => {
+  const had = !!session; session = s;
+  if (!s) { booted = false; show('login'); return; }
+  if (!had || ev === 'SIGNED_IN') setTimeout(boot, 0);
+});
+
+async function boot(){
+  if (!session) return show('login');
+  const { data: ok, error } = await sb.rpc('is_member');
+  if (error || ok !== true) { $('#nm-email').textContent = session.user.email; show('nomember'); return; }
+  show('app');
+  if (booted) return; booted = true;
+  await Promise.all([loadMembers(), loadRules(), loadReceipts()]);
+  const me = members[(session.user.email||'').toLowerCase()];
+  $('#who').textContent = 'Salut' + (me ? ', ' + me : '') + '!';
+}
+(async () => { const { data } = await sb.auth.getSession(); session = data.session; if (!session) show('login'); else boot(); })();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && booted) loadReceipts(); });
+
+/* ================= DATA ================= */
+async function loadMembers(){
+  const { data } = await sb.from('members').select('email,name');
+  members = Object.fromEntries((data||[]).map(m=>[m.email.toLowerCase(), m.name]));
+}
+async function loadRules(){
+  const { data } = await sb.from('category_rules').select('key,category');
+  rules = Object.fromEntries((data||[]).map(r=>[r.key, r.category]));
+}
+async function loadReceipts(){
+  const { data, error } = await sb.from('receipts').select('*').order('date', { ascending:false, nullsFirst:false }).order('created_at', { ascending:false }).limit(3000);
+  if (error) { banner('Nu pot încărca bonurile: ' + esc(error.message), 'err'); return; }
+  banner('');
+  receipts = (data||[]).map(r => ({ ...r, total: num(r.total), month: r.date ? r.date.slice(0,7) : '', items: Array.isArray(r.items) ? r.items : [] }));
+  renderAll();
+}
+const personName = email => email ? (members[email.toLowerCase()] || email.split('@')[0]) : '—';
+
+/* ================= TABS ================= */
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on', x===b));
+  ['add','list','report'].forEach(v=> $('#v-'+v).classList.toggle('hidden', v!==b.dataset.v));
+  window.scrollTo(0,0);
+  renderAll();
+});
+
+/* ================= PHOTOS ================= */
+async function loadImage(file){
+  try { return await createImageBitmap(file, {imageOrientation:'from-image'}); } catch {}
+  return await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=URL.createObjectURL(file); });
+}
+async function toJpeg(src, maxSide, q){
+  const w = src.width, h = src.height, s = Math.min(1, maxSide/Math.max(w,h));
+  const c = document.createElement('canvas'); c.width = Math.round(w*s); c.height = Math.round(h*s);
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return await new Promise(res=>c.toBlob(res, 'image/jpeg', q));
+}
+const blobToB64 = b => new Promise((res,rej)=>{ const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(b); });
+
+async function addFiles(files){
+  for (const f of files){
+    try {
+      const img = await loadImage(f);
+      const blob = await toJpeg(img, 2000, 0.85);
+      photos.push({blob, url: URL.createObjectURL(blob)});
+    } catch { scanNote('Nu am putut deschide poza „'+esc(f.name)+'”. Încearcă JPG sau PNG.', 'err'); }
+  }
+  renderThumbs();
+}
+function renderThumbs(){
+  $('#thumbs').innerHTML = photos.map((p,i)=>`<div class="thumb"><img src="${p.url}" alt=""><button data-i="${i}" aria-label="Șterge">✕</button></div>`).join('');
+  $('#thumbs').querySelectorAll('button').forEach(b=>b.onclick=e=>{ e.preventDefault(); photos.splice(+b.dataset.i,1); renderThumbs(); });
+  $('#scanBtn').disabled = !photos.length;
+}
+$('#file').onchange = e => { addFiles([...e.target.files]); e.target.value=''; };
+const drop = $('#drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e=> addFiles([...e.dataTransfer.files]));
+function scanNote(html, kind='ok'){ $('#scanStatus').innerHTML = html ? `<div class="note ${kind}">${html}</div>` : ''; }
+
+/* ================= AI CALLS ================= */
+async function callAI(body){
+  const { data, error } = await sb.functions.invoke('ai', { body });
+  if (error) {
+    let info = {};
+    try { info = await error.context.json(); } catch {}
+    throw { code: info.error || 'network', detail: info.detail || error.message };
+  }
+  return data;
+}
+const aiErr = e => ({
+  not_member: 'Contul tău nu are acces.',
+  missing_api_key: 'Cheia API Anthropic nu e setată în Supabase (secretul ANTHROPIC_API_KEY).',
+  anthropic_error: 'Serviciul AI a dat eroare: ' + esc(e.detail||''),
+  invalid_json: 'Nu am reușit să citesc bonul corect. Încearcă o poză mai clară, dreaptă, cu tot bonul în cadru.',
+  network: 'Problemă de conexiune. Verifică internetul și mai încearcă.',
+}[e?.code] || 'A apărut o eroare: ' + esc(e?.detail || e?.code || ''));
+
+$('#scanBtn').onclick = async () => {
+  if (!photos.length) return;
+  $('#scanBtn').disabled = true;
+  scanNote('<span class="spinner"></span> &nbsp;Citesc bonul… durează de obicei 10–40 secunde.', 'ok');
+  try {
+    const images = await Promise.all(photos.slice(0,4).map(p=>blobToB64(p.blob)));
+    const { result } = await callAI({ action:'scan', images });
+    if (!result || result.is_receipt === false){ scanNote('Nu pare a fi un bon. ' + esc(result?.notes||''), 'warn'); return; }
+    scanNote('');
+    openEditor(fromAI(result), { isNew:true, photoBlobs: photos.map(p=>p.blob) });
+  } catch (e) {
+    scanNote(aiErr(e), 'err');
+  } finally {
+    $('#scanBtn').disabled = !photos.length;
+  }
+};
+
+function fromAI(d){
+  const items = (Array.isArray(d.items)?d.items:[]).map(it=>{
+    const ai = validCat(it.category);
+    const learned = rules[norm(it.name)];
+    return { name:String(it.name||''), name_ro:String(it.name_ro||''), qty:num(it.qty)||1, price:r2(num(it.price)), category: learned ? validCat(learned) : ai, _ai: ai, _learned: !!learned };
+  });
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(d.date||'') ? d.date : '';
+  const t = String(d.time||''); const time = /^\d{1,2}:\d{2}$/.test(t) ? t.padStart(5,'0') : '';
+  return {
+    store: String(d.store||'').trim(), city: d.city ? String(d.city) : '',
+    date, time, language: String(d.language||''), currency: (String(d.currency||'EUR').toUpperCase().slice(0,3)) || 'EUR',
+    total: r2(num(d.total)), payment: String(d.payment||''), notes: String(d.notes||''), items,
+  };
+}
+
+/* ================= EDITOR ================= */
+$('#manualBtn').onclick = () => openEditor({store:'',city:'',date:todayISO(),time:'',language:'',currency:'EUR',total:0,payment:'',notes:'',items:[{name:'',name_ro:'',qty:1,price:0,category:'mancare'}]}, {isNew:true, photoBlobs:[]});
+function catOptions(sel){ return CATS.map(c=>`<option value="${c.k}" ${c.k===sel?'selected':''}>${c.e} ${c.n}</option>`).join(''); }
+
+function openEditor(draft, opts){
+  const d = JSON.parse(JSON.stringify(draft));
+  const root = $('#modalRoot');
+  root.innerHTML = `<div class="modal"><div class="sheet" id="ed"></div></div>`;
+  const ed = $('#ed');
+  const sumItems = () => r2(d.items.reduce((s,i)=>s+num(i.price),0));
+  const dupOf = () => receipts.find(r => r.id !== opts.id && r.date === d.date && Math.abs(num(r.total)-num(d.total))<0.01 && norm(r.store).slice(0,6) === norm(d.store).slice(0,6) && (!d.time || !r.time || r.time===d.time));
+
+  function checks(){
+    const out = []; const s = sumItems(), t = num(d.total);
+    if (Math.abs(s - t) > 0.02) out.push(`<div class="note warn">Suma produselor (${fmt(s,d.currency)}) diferă de total (${fmt(t,d.currency)}) cu ${fmt(r2(t-s),d.currency)}. Verifică prețurile — diferența va apărea la „Altele” în raport.</div>`);
+    else if (d.items.length) out.push(`<div class="note ok">✓ Suma produselor se potrivește cu totalul.</div>`);
+    if (!d.date) out.push(`<div class="note warn">Nu am găsit data pe bon — completeaz-o mai sus.</div>`);
+    const dup = d.date && d.total ? dupOf() : null;
+    if (dup) out.push(`<div class="note warn">⚠️ Pare un bon deja salvat: ${esc(dup.store)}, ${fmtDate(dup.date)}, ${fmt(num(dup.total),dup.currency)}. Verifică să nu-l pui de două ori.</div>`);
+    if (d.notes) out.push(`<div class="note warn">Notă la citire: ${esc(d.notes)}</div>`);
+    $('#edChecks').innerHTML = out.join('');
+  }
+  function render(){
+    ed.innerHTML = `
+      <div class="row between"><h2 style="margin:0">${opts.isNew ? 'Verifică bonul' : 'Editează bonul'}</h2><button class="btn ghost small" id="edX">✕</button></div>
+      <div class="sub" style="margin:4px 0 12px">${d.language ? 'Limba bonului: <b>'+esc(d.language.toUpperCase())+'</b> · ' : ''}Corectează ce nu e bine, apoi salvează.</div>
+      <div class="grid2">
+        <div><label class="f">Magazin</label><input id="e-store" value="${esc(d.store)}"></div>
+        <div><label class="f">Oraș</label><input id="e-city" value="${esc(d.city)}"></div>
+      </div>
+      <div class="grid3" style="margin-top:10px">
+        <div><label class="f">Data</label><input id="e-date" type="date" value="${esc(d.date)}"></div>
+        <div><label class="f">Ora</label><input id="e-time" type="time" value="${esc(d.time)}"></div>
+        <div><label class="f">Total (${esc(d.currency)})</label><input id="e-total" inputmode="decimal" value="${d.total}"></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <label class="f" style="margin:0">Toate produsele la:</label>
+        <select id="e-all" class="grow"><option value="">— alege —</option>${catOptions('')}</select>
+      </div>
+      <h3>Produse (${d.items.length})</h3>
+      <div>${d.items.map((it,i)=>`
+        <div class="item">
+          ${it.name ? `<div class="orig">${esc(it.name)}${it._learned?' · <span class="chip">categorie învățată</span>':''}</div>` : ''}
+          <input data-i="${i}" data-f="name_ro" placeholder="Produs" value="${esc(it.name_ro || it.name)}">
+          <input data-i="${i}" data-f="price" inputmode="decimal" placeholder="Preț" value="${it.price}">
+          <select data-i="${i}" data-f="category">${catOptions(it.category)}</select>
+          <button class="btn ghost" data-del="${i}">Șterge</button>
+        </div>`).join('')}
+      </div>
+      <button class="btn sec full" id="e-add" style="margin-top:8px">+ Adaugă produs</button>
+      <div id="edChecks"></div>
+      <div class="row" style="margin-top:14px">
+        ${!opts.isNew ? '<button class="btn danger" id="e-delrc">Șterge bonul</button>' : ''}
+        <button class="btn grow" id="e-save">💾 Salvează</button>
+      </div>
+      <div id="e-msg"></div>`;
+    $('#edX').onclick = close;
+    $('#e-store').oninput = e => { d.store = e.target.value; checks(); };
+    $('#e-city').oninput = e => { d.city = e.target.value; };
+    $('#e-date').oninput = e => { d.date = e.target.value; checks(); };
+    $('#e-time').oninput = e => { d.time = e.target.value; checks(); };
+    $('#e-total').oninput = e => { d.total = r2(num(e.target.value)); checks(); };
+    $('#e-all').onchange = e => { if (!e.target.value) return; d.items.forEach(i=>i.category=e.target.value); render(); };
+    ed.querySelectorAll('[data-f]').forEach(el=> el.addEventListener(el.tagName==='SELECT'?'change':'input', ()=>{
+      const it = d.items[+el.dataset.i], f = el.dataset.f;
+      it[f] = f==='price' ? r2(num(el.value)) : el.value;
+      checks();
+    }));
+    ed.querySelectorAll('[data-del]').forEach(b=> b.onclick = ()=>{ d.items.splice(+b.dataset.del,1); render(); });
+    $('#e-add').onclick = ()=>{ d.items.push({name:'',name_ro:'',qty:1,price:0,category:d.items[d.items.length-1]?.category||'mancare'}); render(); };
+    $('#e-save').onclick = save;
+    if (!opts.isNew) $('#e-delrc').onclick = askDelete;
+    checks();
+  }
+  function close(){ root.innerHTML=''; }
+  function askDelete(){
+    $('#e-msg').innerHTML = `<div class="note err">Sigur ștergi bonul? <div class="row" style="margin-top:8px"><button class="btn danger" id="e-yes">Da, șterge</button><button class="btn ghost" id="e-no">Nu</button></div></div>`;
+    $('#e-no').onclick = ()=> $('#e-msg').innerHTML='';
+    $('#e-yes').onclick = async ()=>{
+      const { error } = await sb.from('receipts').delete().eq('id', opts.id);
+      if (error) { $('#e-msg').innerHTML = `<div class="note err">Nu am putut șterge: ${esc(error.message)}</div>`; return; }
+      if (opts.photoPaths?.length) await sb.storage.from('receipts').remove(opts.photoPaths);
+      close(); loadReceipts();
+    };
+  }
+  async function save(){
+    if (!d.store.trim()) { $('#e-msg').innerHTML = '<div class="note err">Completează numele magazinului.</div>'; return; }
+    if (!d.date) { $('#e-msg').innerHTML = '<div class="note err">Completează data.</div>'; return; }
+    const btn = $('#e-save'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Salvez…';
+    try {
+      const photo_paths = [...(opts.photoPaths || [])];
+      if (opts.isNew && opts.photoBlobs?.length){
+        for (let i=0; i<opts.photoBlobs.length; i++){
+          try {
+            const small = await toJpeg(await loadImage(opts.photoBlobs[i]), 1400, 0.72);
+            const path = `${session.user.id}/${Date.now()}_${i}.jpg`;
+            const { error } = await sb.storage.from('receipts').upload(path, small, { contentType:'image/jpeg' });
+            if (!error) photo_paths.push(path);
+          } catch {}
+        }
+      }
+      const items = d.items.filter(i=> (i.name_ro||i.name||'').trim() || num(i.price)).map(i=>({
+        name: String(i.name||i.name_ro||''), name_ro: String(i.name_ro||i.name||''), qty: num(i.qty)||1, price: r2(num(i.price)), category: validCat(i.category)
+      }));
+      const row = {
+        store: d.store.trim(), city: (d.city||'').trim(), date: d.date, time: d.time||'', currency: d.currency||'EUR',
+        total: r2(num(d.total)), language: d.language||'', payment: d.payment||'', notes: d.notes||'', items, photo_paths,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = opts.isNew ? await sb.from('receipts').insert(row) : await sb.from('receipts').update(row).eq('id', opts.id);
+      if (error) throw error;
+
+      // learn from category corrections
+      const learned = [];
+      d.items.forEach(i=>{ const k = norm(i.name); if (k && k.length>2 && i._ai && i.category !== i._ai) learned.push({ key:k, category:i.category, updated_at:new Date().toISOString() }); });
+      if (learned.length){ await sb.from('category_rules').upsert(learned); learned.forEach(l=> rules[l.key]=l.category); }
+
+      close();
+      if (opts.isNew){ photos = []; renderThumbs(); scanNote('✓ Bon salvat: '+esc(row.store)+', '+fmtDate(row.date)+', '+fmt(row.total, row.currency), 'ok'); }
+      loadReceipts();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = '💾 Salvează';
+      $('#e-msg').innerHTML = `<div class="note err">Nu am putut salva: ${esc(e.message||e)}</div>`;
+    }
+  }
+  render();
+}
+
+async function openReceipt(r){
+  const root = $('#modalRoot');
+  const t = itemsByCat(r);
+  root.innerHTML = `<div class="modal"><div class="sheet">
+    <div class="row between"><div><h2 style="margin:0">${esc(r.store)}</h2><div class="sub">${fmtDate(r.date)}${r.time?' · '+esc(r.time):''}${r.city?' · '+esc(r.city):''} · adăugat de ${esc(personName(r.added_by_email))}</div></div><button class="btn ghost small" id="vX">✕</button></div>
+    <div class="kpi" style="margin:12px 0"><div class="l">Total</div><div class="v">${fmt(num(r.total), r.currency)}</div></div>
+    ${Object.entries(t).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="chip" style="background:${CAT[k].c}22;color:${CAT[k].c};margin:0 4px 4px 0">${CAT[k].e} ${CAT[k].n}: ${fmt(v,r.currency)}</span>`).join('')}
+    <table class="t" style="margin-top:10px">${r.items.map(i=>`<tr><td>${CAT[validCat(i.category)].e} ${esc(i.name_ro||i.name)}${i.name && i.name!==i.name_ro?`<div class="sub" style="font-size:11px">${esc(i.name)}</div>`:''}</td><td class="r">${fmt(num(i.price), r.currency)}</td></tr>`).join('')}</table>
+    <div id="vPhotos"></div>
+    <div class="row" style="margin-top:14px"><button class="btn sec full" id="vEdit">✏️ Editează</button></div>
+  </div></div>`;
+  $('#vX').onclick = ()=> root.innerHTML='';
+  $('#vEdit').onclick = ()=> openEditor({...r, items:r.items.map(i=>({...i,_ai:i.category}))}, {isNew:false, id:r.id, photoPaths:r.photo_paths||[]});
+  if (r.photo_paths?.length){
+    const { data } = await sb.storage.from('receipts').createSignedUrls(r.photo_paths, 3600);
+    const el = $('#vPhotos'); if (el && data) el.innerHTML = data.filter(x=>x.signedUrl).map(x=>`<img class="photo" src="${esc(x.signedUrl)}" alt="Poza bonului">`).join('');
+  }
+}
+
+/* ================= AGGREGATION ================= */
+function itemsByCat(r){
+  const out = {}; let s = 0;
+  r.items.forEach(i=>{ const k=validCat(i.category); out[k]=r2((out[k]||0)+num(i.price)); s+=num(i.price); });
+  if (!r.items.length) { out.altele = r2(num(r.total)); return out; }
+  const diff = r2(num(r.total) - s);
+  if (Math.abs(diff) > 0.009) out.altele = r2((out.altele||0) + diff);
+  return out;
+}
+function mainCat(r){ const t=itemsByCat(r); return Object.entries(t).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'altele'; }
+function monthsAvailable(){ const s = new Set(receipts.map(r=>r.month).filter(Boolean)); s.add(curMonth()); return [...s].sort().reverse(); }
+
+/* ================= RENDER ================= */
+function renderAll(){
+  renderRecent();
+  if (!$('#v-list').classList.contains('hidden')) renderList();
+  if (!$('#v-report').classList.contains('hidden')) renderReport();
+}
+function receiptCard(r){
+  const t = itemsByCat(r), tot = Object.values(t).reduce((a,b)=>a+Math.max(0,b),0) || 1;
+  const mc = CAT[mainCat(r)];
+  return `<div class="card rc" data-id="${esc(r.id)}">
+    <div class="ic">${mc.e}</div>
+    <div class="grow" style="min-width:0">
+      <div class="row between"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%">${esc(r.store||'Magazin')}</b><span class="amt">${fmt(num(r.total), r.currency)}</span></div>
+      <div class="sub">${fmtDate(r.date)}${r.time?' · '+esc(r.time):''} · ${r.items.length} produse · ${esc(personName(r.added_by_email))}</div>
+      <div class="mix">${Object.entries(t).filter(([,v])=>v>0).map(([k,v])=>`<i style="width:${v/tot*100}%;background:${CAT[k].c}"></i>`).join('')}</div>
+    </div></div>`;
+}
+function bindCards(el){ el.querySelectorAll('.rc').forEach(c=> c.onclick = ()=>{ const r = receipts.find(x=>x.id===c.dataset.id); if (r) openReceipt(r); }); }
+function renderRecent(){
+  const el = $('#recent');
+  const rs = [...receipts].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).slice(0,5);
+  el.innerHTML = rs.length ? rs.map(receiptCard).join('') : `<div class="empty">Niciun bon încă. Pozează primul bon mai sus 👆</div>`;
+  el.querySelectorAll('.card').forEach(c=>{ c.style.margin='0 0 8px'; c.style.padding='10px'; });
+  bindCards(el);
+}
+function fillSelect(sel, opts){
+  const cur = sel.value;
+  sel.innerHTML = opts.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('');
+  sel.value = opts.some(o=>o[0]===cur) ? cur : (opts[0]?.[0] ?? '');
+}
+function renderList(){
+  fillSelect($('#listMonth'), [['','Toate lunile'], ...monthsAvailable().map(m=>[m, monthLabel(m)])]);
+  fillSelect($('#listCat'), [['','Toate categoriile'], ...CATS.map(c=>[c.k, c.e+' '+c.n])]);
+  const q = norm($('#search').value), m = $('#listMonth').value, c = $('#listCat').value;
+  let rs = receipts.filter(r => (!m || r.month===m) && (!c || r.items.some(i=>validCat(i.category)===c) || (c==='altele' && !r.items.length)));
+  if (q) rs = rs.filter(r => norm(r.store).includes(q) || r.items.some(i=> norm(i.name_ro).includes(q) || norm(i.name).includes(q)));
+  const el = $('#list');
+  if (!rs.length){ el.innerHTML = `<div class="empty">Niciun bon găsit.</div>`; return; }
+  const groups = {};
+  rs.forEach(r => (groups[r.month||''] ??= []).push(r));
+  el.innerHTML = Object.keys(groups).sort().reverse().map(mm => {
+    const tot = groups[mm].filter(r=>(r.currency||'EUR')==='EUR').reduce((s,r)=>s+num(r.total),0);
+    return `<h3 class="row between"><span>${monthLabel(mm)}</span><span>${fmt(tot)}</span></h3>` + groups[mm].map(receiptCard).join('');
+  }).join('');
+  bindCards(el);
+}
+$('#search').oninput = renderList; $('#listMonth').onchange = renderList; $('#listCat').onchange = renderList;
+
+function monthStats(m){
+  const rs = receipts.filter(r=>r.month===m);
+  const eur = rs.filter(r=>(r.currency||'EUR')==='EUR'), other = rs.filter(r=>(r.currency||'EUR')!=='EUR');
+  const cats = {}, stores = {}, people = {}, days = {}; let total = 0;
+  eur.forEach(r=>{
+    total += num(r.total);
+    Object.entries(itemsByCat(r)).forEach(([k,v])=> cats[k]=r2((cats[k]||0)+v));
+    const sk = (r.store||'?').trim(); stores[sk] = r2((stores[sk]||0)+num(r.total));
+    const pk = r.added_by_email||''; people[pk] = r2((people[pk]||0)+num(r.total));
+    const dd = +(r.date||'').slice(8,10); if (dd) days[dd] = r2((days[dd]||0)+num(r.total));
+  });
+  return {rs, eur, other, cats, stores, people, days, total: r2(total)};
+}
+
+function renderReport(){
+  fillSelect($('#repMonth'), monthsAvailable().map(m=>[m, monthLabel(m)]));
+  const m = $('#repMonth').value || curMonth();
+  const S = monthStats(m), P = monthStats(prevMonth(m));
+  const el = $('#report');
+  if (!S.rs.length){ el.innerHTML = `<div class="empty">Niciun bon în ${monthLabel(m)}.</div>`; return; }
+  const delta = P.total ? (S.total - P.total)/P.total*100 : null;
+  const [y,mo] = m.split('-').map(Number); const dim = new Date(y, mo, 0).getDate();
+  const maxDay = Math.max(1, ...Object.values(S.days));
+  const catList = Object.entries(S.cats).filter(([,v])=>Math.abs(v)>0.004).sort((a,b)=>b[1]-a[1]);
+  const maxCat = Math.max(1, ...catList.map(c=>c[1]));
+  const stores = Object.entries(S.stores).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const people = Object.entries(S.people).sort((a,b)=>b[1]-a[1]);
+  const topItems = S.eur.flatMap(r=>r.items.map(i=>({...i, store:r.store}))).filter(i=>num(i.price)>0).sort((a,b)=>num(b.price)-num(a.price)).slice(0,5);
+
+  el.innerHTML = `
+    <div class="kpis">
+      <div class="kpi"><div class="l">Total cheltuit</div><div class="v">${fmt(S.total)}</div></div>
+      <div class="kpi"><div class="l">Bonuri</div><div class="v">${S.eur.length}</div></div>
+      <div class="kpi"><div class="l">Față de ${MONTHS_RO[+prevMonth(m).slice(5)-1].slice(0,3)}.</div><div class="v ${delta==null?'':delta>0?'up':'down'}">${delta==null?'—':(delta>0?'+':'')+delta.toFixed(0)+'%'}</div></div>
+    </div>
+    <div class="card">
+      <h2>Pe categorii</h2>
+      ${catList.map(([k,v])=>{ const pv = P.cats[k]||0; const d = pv? (v-pv)/pv*100 : null; return `
+        <div class="catrow">
+          <div class="row between"><span>${CAT[k].e} ${CAT[k].n}</span><span><b>${fmt(v)}</b> <span class="sub">· ${(v/S.total*100).toFixed(0)}%${d==null?'':` · <span class="${d>0?'up':'down'}">${d>0?'▲':'▼'}${Math.abs(d).toFixed(0)}%</span>`}</span></span></div>
+          <div class="bar"><i style="width:${Math.max(0,v)/maxCat*100}%;background:${CAT[k].c}"></i></div>
+        </div>`; }).join('')}
+    </div>
+    <div class="card">
+      <h2>Cheltuieli pe zile</h2>
+      <div class="days">${Array.from({length:dim},(_,i)=>`<i title="${i+1}: ${fmt(S.days[i+1]||0)}" style="height:${(S.days[i+1]||0)/maxDay*100}%"></i>`).join('')}</div>
+      <div class="row between sub" style="margin-top:4px"><span>1</span><span>${Math.ceil(dim/2)}</span><span>${dim}</span></div>
+    </div>
+    <div class="card"><h2>Magazine</h2><table class="t">${stores.map(([s,v])=>`<tr><td>${esc(s)}</td><td class="r">${fmt(v)}</td></tr>`).join('')}</table></div>
+    <div class="card"><h2>Cine a adăugat</h2><table class="t">${people.map(([p,v])=>`<tr><td>${esc(personName(p))}</td><td class="r">${fmt(v)}</td></tr>`).join('')}</table></div>
+    <div class="card"><h2>Cele mai scumpe produse</h2><table class="t">${topItems.map(i=>`<tr><td>${CAT[validCat(i.category)].e} ${esc(i.name_ro||i.name)}<div class="sub" style="font-size:11px">${esc(i.store)}</div></td><td class="r">${fmt(num(i.price))}</td></tr>`).join('')}</table></div>
+    ${S.other.length ? `<div class="note warn">${S.other.length} bon(uri) în altă monedă nu sunt incluse în totaluri: ${S.other.map(r=>esc(r.store)+' '+fmt(num(r.total),r.currency)).join(', ')}.</div>` : ''}
+    <div class="card">
+      <h2>🤖 Rezumat AI al lunii</h2>
+      <div class="sub" style="margin-bottom:10px">Pe scurt: ce s-a schimbat și unde se poate economisi.</div>
+      <div id="aiOut" class="ai-out"></div>
+      <button class="btn sec full" id="aiBtn">Generează rezumatul</button>
+    </div>
+    <div class="row">
+      <button class="btn ghost grow" id="csvBtn">⬇️ Export Excel (CSV)</button>
+      <button class="btn ghost grow" id="copyBtn">📋 Copiază raportul</button>
+    </div>
+    <div id="expMsg"></div>`;
+
+  $('#aiBtn').onclick = async () => {
+    const out = $('#aiOut'), btn = $('#aiBtn'); btn.disabled = true; out.innerHTML = '<span class="spinner"></span> Analizez…';
+    const data = {
+      luna: monthLabel(m), total: S.total, bonuri: S.eur.length,
+      categorii: Object.fromEntries(catList.map(([k,v])=>[CAT[k].n, v])),
+      luna_anterioara: { total: P.total, categorii: Object.fromEntries(Object.entries(P.cats).map(([k,v])=>[CAT[k].n,v])) },
+      magazine: Object.fromEntries(stores),
+      produse_top: Object.entries(S.eur.flatMap(r=>r.items).reduce((a,i)=>{ const k=(i.name_ro||i.name||'').toLowerCase(); if(!k) return a; a[k]=a[k]||{bucati:0,suma:0}; a[k].bucati++; a[k].suma=r2(a[k].suma+num(i.price)); return a; },{})).sort((a,b)=>b[1].suma-a[1].suma).slice(0,15),
+    };
+    try { const { text } = await callAI({ action:'summary', data }); out.textContent = text; }
+    catch (e) { out.innerHTML = aiErr(e); }
+    finally { btn.disabled = false; btn.textContent = 'Generează din nou'; }
+  };
+  $('#csvBtn').onclick = () => {
+    const q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+    const rows = [['Data','Ora','Magazin','Oras','Produs (original)','Produs (RO)','Categorie','Pret','Moneda','Total bon','Adaugat de']];
+    S.rs.forEach(r => r.items.forEach(i => rows.push([r.date, r.time, r.store, r.city, i.name, i.name_ro, CAT[validCat(i.category)].n, String(num(i.price)).replace('.',','), r.currency, String(num(r.total)).replace('.',','), personName(r.added_by_email)])));
+    const blob = new Blob(['﻿' + rows.map(r=>r.map(q).join(';')).join('\n')], {type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `bonuri_${m}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  };
+  $('#copyBtn').onclick = async () => {
+    const txt = `Raport ${monthLabel(m)}\nTotal: ${fmt(S.total)} (${S.eur.length} bonuri)\n\n` + catList.map(([k,v])=>`${CAT[k].n}: ${fmt(v)} (${(v/S.total*100).toFixed(0)}%)`).join('\n') + `\n\nMagazine:\n` + stores.map(([s,v])=>`${s}: ${fmt(v)}`).join('\n');
+    try { await navigator.clipboard.writeText(txt); $('#expMsg').innerHTML='<div class="note ok">✓ Copiat. Îl poți lipi în WhatsApp sau Notes.</div>'; }
+    catch { $('#expMsg').innerHTML='<div class="note err">Nu am putut copia.</div>'; }
+  };
+}
+$('#repMonth').onchange = renderReport;
+</script>
+</body>
+</html>
